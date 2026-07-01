@@ -15,6 +15,7 @@
 </head>
 <body class="p-4 font-sans select-none">
 
+    <!-- 1-EKRAN: KOD KIRITISH -->
     <div id="code-screen" class="max-w-md mx-auto mt-10 text-center">
         <div class="mb-6"><i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i></div>
         <h2 class="text-2xl font-bold mb-2">Majburiy Blok Testi</h2>
@@ -28,6 +29,7 @@
         </button>
     </div>
 
+    <!-- 2-EKRAN: TEST TOPSHIRISH -->
     <div id="test-screen" class="max-w-md mx-auto hidden">
         <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl mb-4 border border-gray-700">
             <span class="text-sm text-gray-400">Test kodi: <b id="display-code" class="text-white"></b></span>
@@ -72,14 +74,14 @@
             const container = document.getElementById('questions-container');
             container.innerHTML = '';
 
-            // Foydalanuvchiga har doim 10 ta savol varianti to'liq chiqariladi
+            // Har doim 10 ta savol to'liq chiqadi
             for (let i = 1; i <= 10; i++) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = "bg-gray-800 p-4 rounded-xl border border-gray-700";
                 const currentSelection = userAnswers[currentTab][i] || '';
 
                 questionDiv.innerHTML = `
-                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol Variantini Tanlang:</div>
+                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol variantini tanlang:</div>
                     <div class="grid grid-cols-4 gap-2">
                         ${['a', 'b', 'c', 'd'].map(opt => `
                             <div>
@@ -117,15 +119,11 @@
                 answers: userAnswers
             };
             
-            // Ma'lumot uzatishni kafolatlash uchun stringify qilinadi
             try {
                 tg.sendData(JSON.stringify(payload));
-                // Ba'zi eski qurilmalarda darhol yopilib ketmasligi uchun va ma'lumot yetib borishi uchun qisqa kechikish
-                setTimeout(() => {
-                    tg.close();
-                }, 150);
+                setTimeout(() => { tg.close(); }, 150);
             } catch (error) {
-                alert("Xatolik: Telegram bilan aloqa o'rnatib bo'lmadi.");
+                alert("Xatolik: Ma'lumot uzatilmadi.");
             }
         }
     </script>
