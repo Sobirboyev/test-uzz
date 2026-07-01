@@ -15,6 +15,7 @@
 </head>
 <body class="p-4 font-sans select-none">
 
+    <!-- 1-EKRAN: KOD KIRITISH -->
     <div id="code-screen" class="max-w-md mx-auto mt-10 text-center">
         <div class="mb-6"><i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i></div>
         <h2 class="text-2xl font-bold mb-2">Majburiy Blok Testi</h2>
@@ -28,6 +29,7 @@
         </button>
     </div>
 
+    <!-- 2-EKRAN: TEST TOPSHIRISH -->
     <div id="test-screen" class="max-w-md mx-auto hidden">
         <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl mb-4 border border-gray-700">
             <span class="text-sm text-gray-400">Test kodi: <b id="display-code" class="text-white"></b></span>
@@ -54,8 +56,8 @@
         tg.expand();
         tg.ready();
 
-        // ⚠️ ALBATTA O'ZINGIZNING REAL RENDER LINKINGIZNI QO'YING!
-        const BACKEND_URL = "https://testbot-xxxx.onrender.com"; 
+        // 🔗 Bot.py dagi server bilan to'g'ri bog'landi
+        const BACKEND_URL = "https://test-uzz.onrender.com"; 
 
         let currentTab = 'mat';
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
@@ -71,7 +73,7 @@
                             tg.close();
                         }
                     })
-                    .catch(err => console.log("Kutilmoqda..."));
+                    .catch(err => console.log("Ulanish kutilmoqda..."));
             }
         });
 
@@ -103,7 +105,7 @@
                         alert(data.message);
                         tg.close();
                     } else if (data.status === "invalid_code") {
-                        alert(data.message); // "Tizimda bunday kodli faol test mavjud emas!" yozuvi chiqadi va to'xtaydi.
+                        alert(data.message);
                     } else if (data.status === "already_passed") {
                         alert(data.message);
                         tg.close();
@@ -115,7 +117,7 @@
                     btnText.innerText = "Testni Boshlash";
                     btnIcon.className = "fa-solid fa-arrow-right ml-2";
                     startBtn.disabled = false;
-                    alert("Bot serveri bilan aloqa yo'q! Kod tekshirilmadi.");
+                    alert("Bot serveri bilan aloqa yo'q! Render hozirgina uyg'onayotgan bo'lishi mumkin. Bir necha soniyadan so'ng qayta urinib ko'ring.");
                 });
         }
 
