@@ -15,7 +15,6 @@
 </head>
 <body class="p-4 font-sans select-none">
 
-    <!-- 1-EKRAN: KOD KIRITISH -->
     <div id="code-screen" class="max-w-md mx-auto mt-10 text-center">
         <div class="mb-6"><i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i></div>
         <h2 class="text-2xl font-bold mb-2">Majburiy Blok Testi</h2>
@@ -24,12 +23,11 @@
             <input type="number" id="test-code" placeholder="Masalan: 1234" 
                    class="w-full p-4 rounded-xl border border-gray-700 bg-gray-800 text-white text-center text-xl font-bold focus:outline-none focus:border-blue-500">
         </div>
-        <button onclick="checkAndStart()" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition">
-            Testni Boshlash <i class="fa-solid fa-arrow-right ml-2"></i>
+        <button id="start-btn" onclick="checkAndStart()" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition flex items-center justify-center">
+            <span id="btn-text">Testni Boshlash</span> <i id="btn-icon" class="fa-solid fa-arrow-right ml-2"></i>
         </button>
     </div>
 
-    <!-- 2-EKRAN: TEST TOPSHIRISH -->
     <div id="test-screen" class="max-w-md mx-auto hidden">
         <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl mb-4 border border-gray-700">
             <span class="text-sm text-gray-400">Test kodi: <b id="display-code" class="text-white"></b></span>
@@ -56,25 +54,92 @@
         tg.expand();
         tg.ready();
 
+        // ⚠️ SIZNING REKORD/RENDER HOSTING SILKANGIZ (Masalan: https://testbot.onrender.com)
+        // Agarda botingiz qayerda onlayn turgan bo'lsa, o'sha silkasini bering.
+        const BACKEND_URL = "https://testbot-xxxx.onrender.com"; 
+
         let currentTab = 'mat';
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
+        // Birinchi kirgandayoq obunani tekshirish (O'g'rincha kirganlarni darhol haydash)
+        window.addEventListener('DOMContentLoaded', () => {
+            const userId = tg.initDataUnsafe?.user?.id;
+            if (!userId) {
+                alert("Telegram foydalanuvchi ma'lumotlari topilmadi!");
+                return;
+            }
+            
+            // Kod yubormasdan faqat obunani tekshiramiz
+            fetch(`${BACKEND_URL}/check_status?user_id=${userId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.status === "blocked") {
+                        alert(data.message);
+                        tg.close(); // Obuna bo'lmagan bo'lsa srazu Web App yopiladi
+                    }
+                })
+                .catch(err => console.error("Dastlabki obuna tekshiruvida xatolik"));
+        });
+
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            if(!code) { alert("Iltimos, test kodini kiriting!"); return; }
+            const userId = tg.initDataUnsafe?.user?.id;
 
-            document.getElementById('code-screen').classList.add('hidden');
-            document.getElementById('test-screen').classList.remove('hidden');
-            document.getElementById('display-code').innerText = code;
+            if(!code) { 
+                alert("Iltimos, test kodini kiriting!"); 
+                return; 
+            }
+            if(!userId) {
+                alert("Foydalanuvchi ID topilmadi. Qayta urinib ko'ring.");
+                return;
+            }
 
-            renderQuestions();
+            // Tugmani yuklanish holatiga o'tkazish
+            const btnText = document.getElementById('btn-text');
+            const btnIcon = document.getElementById('btn-icon');
+            const startBtn = document.getElementById('start-btn');
+            
+            btnText.innerText = "Tekshirilmoqda...";
+            btnIcon.className = "fa-solid fa-spinner fa-spin ml-2";
+            startBtn.disabled = true;
+
+            // Bot serveridan qat'iy tekshiruv so'rovi
+            fetch(`${BACKEND_URL}/check_status?user_id=${userId}&code=${code}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Tugmani eski holiga qaytarish
+                    btnText.innerText = "Testni Boshlash";
+                    btnIcon.className = "fa-solid fa-arrow-right ml-2";
+                    startBtn.disabled = false;
+
+                    if (data.status === "blocked") {
+                        alert(data.message);
+                        tg.close(); // Kanallarga a'zo bo'lmasa yopiladi
+                    } else if (data.status === "invalid_code") {
+                        alert(data.message); // Bunday kodli test yo'q
+                    } else if (data.status === "already_passed") {
+                        alert(data.message); // Oldin topshirgan bo'lsa
+                        tg.close();
+                    } else if (data.status === "ok") {
+                        // Agar hammasi muvaffaqiyatli bo'lsa test sahifasini ochish
+                        document.getElementById('code-screen').classList.add('hidden');
+                        document.getElementById('test-screen').classList.remove('hidden');
+                        document.getElementById('display-code').innerText = code;
+                        renderQuestions();
+                    }
+                })
+                .catch(err => {
+                    btnText.innerText = "Testni Boshlash";
+                    btnIcon.className = "fa-solid fa-arrow-right ml-2";
+                    startBtn.disabled = false;
+                    alert("Bot serveri bilan bog'lanishda xatolik yuz berdi. Bot yoqilganligiga ishonch hosil qiling!");
+                });
         }
 
         function renderQuestions() {
             const container = document.getElementById('questions-container');
             container.innerHTML = '';
 
-            // Har doim 10 ta savol to'liq chiqadi
             for (let i = 1; i <= 10; i++) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = "bg-gray-800 p-4 rounded-xl border border-gray-700";
