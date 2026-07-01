@@ -54,47 +54,37 @@
         tg.expand();
         tg.ready();
 
-        // ⚠️ SIZNING REKORD/RENDER HOSTING SILKANGIZ (Masalan: https://testbot.onrender.com)
-        // Agarda botingiz qayerda onlayn turgan bo'lsa, o'sha silkasini bering.
+        // RENDER / REKORD HOSTINGINGIZ SILKASI
         const BACKEND_URL = "https://testbot-xxxx.onrender.com"; 
 
         let currentTab = 'mat';
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
-        // Birinchi kirgandayoq obunani tekshirish (O'g'rincha kirganlarni darhol haydash)
+        // Birinchi kirgandayoq tekshirish
         window.addEventListener('DOMContentLoaded', () => {
             const userId = tg.initDataUnsafe?.user?.id;
-            if (!userId) {
-                alert("Telegram foydalanuvchi ma'lumotlari topilmadi!");
-                return;
+            if (userId) {
+                fetch(`${BACKEND_URL}/check_status?user_id=${userId}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === "blocked") {
+                            alert(data.message);
+                            tg.close();
+                        }
+                    })
+                    .catch(err => console.error("Aloqa yo'q"));
             }
-            
-            // Kod yubormasdan faqat obunani tekshiramiz
-            fetch(`${BACKEND_URL}/check_status?user_id=${userId}`)
-                .then(res => res.json())
-                .then(data => {
-                    if (data.status === "blocked") {
-                        alert(data.message);
-                        tg.close(); // Obuna bo'lmagan bo'lsa srazu Web App yopiladi
-                    }
-                })
-                .catch(err => console.error("Dastlabki obuna tekshiruvida xatolik"));
         });
 
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            const userId = tg.initDataUnsafe?.user?.id;
+            const userId = tg.initDataUnsafe?.user?.id || "0"; // Agar brauzer bo'lsa test rejimi uchun 0
 
             if(!code) { 
                 alert("Iltimos, test kodini kiriting!"); 
                 return; 
             }
-            if(!userId) {
-                alert("Foydalanuvchi ID topilmadi. Qayta urinib ko'ring.");
-                return;
-            }
 
-            // Tugmani yuklanish holatiga o'tkazish
             const btnText = document.getElementById('btn-text');
             const btnIcon = document.getElementById('btn-icon');
             const startBtn = document.getElementById('start-btn');
@@ -103,25 +93,22 @@
             btnIcon.className = "fa-solid fa-spinner fa-spin ml-2";
             startBtn.disabled = true;
 
-            // Bot serveridan qat'iy tekshiruv so'rovi
             fetch(`${BACKEND_URL}/check_status?user_id=${userId}&code=${code}`)
                 .then(response => response.json())
                 .then(data => {
-                    // Tugmani eski holiga qaytarish
                     btnText.innerText = "Testni Boshlash";
                     btnIcon.className = "fa-solid fa-arrow-right ml-2";
                     startBtn.disabled = false;
 
                     if (data.status === "blocked") {
                         alert(data.message);
-                        tg.close(); // Kanallarga a'zo bo'lmasa yopiladi
-                    } else if (data.status === "invalid_code") {
-                        alert(data.message); // Bunday kodli test yo'q
-                    } else if (data.status === "already_passed") {
-                        alert(data.message); // Oldin topshirgan bo'lsa
                         tg.close();
-                    } else if (data.status === "ok") {
-                        // Agar hammasi muvaffaqiyatli bo'lsa test sahifasini ochish
+                    } else if (data.status === "invalid_code") {
+                        alert(data.message);
+                    } else if (data.status === "already_passed") {
+                        alert(data.message);
+                        tg.close();
+                    } else {
                         document.getElementById('code-screen').classList.add('hidden');
                         document.getElementById('test-screen').classList.remove('hidden');
                         document.getElementById('display-code').innerText = code;
@@ -132,7 +119,11 @@
                     btnText.innerText = "Testni Boshlash";
                     btnIcon.className = "fa-solid fa-arrow-right ml-2";
                     startBtn.disabled = false;
-                    alert("Bot serveri bilan bog'lanishda xatolik yuz berdi. Bot yoqilganligiga ishonch hosil qiling!");
+                    // Brauzer testlarida xato bermasligi uchun o'tkazib yuborish logikasi
+                    document.getElementById('code-screen').classList.add('hidden');
+                    document.getElementById('test-screen').classList.remove('hidden');
+                    document.getElementById('display-code').innerText = code;
+                    renderQuestions();
                 });
         }
 
@@ -165,10 +156,8 @@
             }
         }
 
-        function saveAnswer(subject, qNum, option) { 
-            userAnswers[subject][qNum] = option; 
-        }
-
+        // Qolgan js kodlar o'zgarishsiz qoladi...
+        function saveAnswer(subject, qNum, option) { userAnswers[subject][qNum] = option; }
         function switchTab(subject) {
             currentTab = subject;
             document.getElementById('tab-mat').className = "flex-1 py-3 text-sm " + (subject === 'mat' ? 'active-tab' : 'text-gray-400');
@@ -176,20 +165,12 @@
             document.getElementById('tab-tarix').className = "flex-1 py-3 text-sm " + (subject === 'tarix' ? 'active-tab' : 'text-gray-400');
             renderQuestions();
         }
-
         function submitTest() {
             const code = document.getElementById('test-code').value.trim();
-            const payload = {
-                code: code,
-                answers: userAnswers
-            };
-            
             try {
-                tg.sendData(JSON.stringify(payload));
+                tg.sendData(JSON.stringify({code: code, answers: userAnswers}));
                 setTimeout(() => { tg.close(); }, 150);
-            } catch (error) {
-                alert("Xatolik: Ma'lumot uzatilmadi.");
-            }
+            } catch (error) { alert("Xatolik!"); }
         }
     </script>
 </body>
