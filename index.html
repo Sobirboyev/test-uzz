@@ -54,13 +54,12 @@
         tg.expand();
         tg.ready();
 
-        // ⚠️ RENDER YOKI REKORD HOSTINGINGIZ SILKASI CHIRAYLI QILIB YOZILSIN
+        // ⚠️ ALBATTA O'ZINGIZNING REAL RENDER LINKINGIZNI QO'YING!
         const BACKEND_URL = "https://testbot-xxxx.onrender.com"; 
 
         let currentTab = 'mat';
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
-        // Birinchi kirgandayoq orqa fonda jimgina tekshirish (Hech qanday alertlarsiz)
         window.addEventListener('DOMContentLoaded', () => {
             const userId = tg.initDataUnsafe?.user?.id;
             if (userId) {
@@ -72,14 +71,12 @@
                             tg.close();
                         }
                     })
-                    .catch(err => console.log("Tizim yuklanishda kutmoqda..."));
+                    .catch(err => console.log("Kutilmoqda..."));
             }
         });
 
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            
-            // Telegram foydalanuvchi ID sini aniqlash. Agar topilmasa jimgina "0" (Hech qanday xatosiz!)
             const userId = tg.initDataUnsafe?.user?.id || "0"; 
 
             if(!code) { 
@@ -95,7 +92,6 @@
             btnIcon.className = "fa-solid fa-spinner fa-spin ml-2";
             startBtn.disabled = true;
 
-            // Serverga so'rov yuborish
             fetch(`${BACKEND_URL}/check_status?user_id=${userId}&code=${code}`)
                 .then(response => response.json())
                 .then(data => {
@@ -107,21 +103,19 @@
                         alert(data.message);
                         tg.close();
                     } else if (data.status === "invalid_code") {
-                        alert(data.message);
+                        alert(data.message); // "Tizimda bunday kodli faol test mavjud emas!" yozuvi chiqadi va to'xtaydi.
                     } else if (data.status === "already_passed") {
                         alert(data.message);
                         tg.close();
-                    } else {
-                        // Agar hamma shartlar "ok" bo'lsa ekran ochiladi
+                    } else if (data.status === "ok") {
                         openTestScreen(code);
                     }
                 })
                 .catch(err => {
-                    // Agar server o'chiq bo'lsa yoki brauzerda test qilinayotgan bo'lsa xato chiqmasdan to'g'ridan-to'g'ri o'tkazadi!
                     btnText.innerText = "Testni Boshlash";
                     btnIcon.className = "fa-solid fa-arrow-right ml-2";
                     startBtn.disabled = false;
-                    openTestScreen(code);
+                    alert("Bot serveri bilan aloqa yo'q! Kod tekshirilmadi.");
                 });
         }
 
@@ -161,10 +155,8 @@
             }
         }
 
-        function saveAnswer(subject, qNum, option) { 
-            userAnswers[subject][qNum] = option; 
-        }
-
+        function saveAnswer(subject, qNum, option) { userAnswers[subject][qNum] = option; }
+        
         function switchTab(subject) {
             currentTab = subject;
             document.getElementById('tab-mat').className = "flex-1 py-3 text-sm " + (subject === 'mat' ? 'active-tab' : 'text-gray-400');
@@ -178,9 +170,7 @@
             try {
                 tg.sendData(JSON.stringify({code: code, answers: userAnswers}));
                 setTimeout(() => { tg.close(); }, 150);
-            } catch (error) { 
-                alert("Xatolik: Telegram bilan aloqa o'rnatilmadi."); 
-            }
+            } catch (error) { alert("Xatolik!"); }
         }
     </script>
 </body>
