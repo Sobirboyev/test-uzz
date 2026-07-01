@@ -8,38 +8,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
-            background-color: var(--tg-theme-bg-color, #1f2937);
-            color: var(--tg-theme-text-color, #f3f4f6);
-        }
-        .active-tab {
-            border-bottom: 3px solid #3b82f6;
-            color: #3b82f6;
-            font-weight: bold;
-        }
-        /* Radio tugmalar uchun chiroyli stil */
-        .option-btn:checked + label {
-            background-color: #3b82f6;
-            color: white;
-            border-color: #3b82f6;
-        }
+        body { background-color: var(--tg-theme-bg-color, #111827); color: var(--tg-theme-text-color, #f3f4f6); }
+        .active-tab { border-bottom: 3px solid #3b82f6; color: #3b82f6; font-weight: bold; }
+        .option-btn:checked + label { background-color: #3b82f6; color: white; border-color: #3b82f6; }
     </style>
 </head>
 <body class="p-4 font-sans select-none">
 
     <div id="code-screen" class="max-w-md mx-auto mt-10 text-center">
-        <div class="mb-6">
-            <i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i>
-        </div>
+        <div class="mb-6"><i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i></div>
         <h2 class="text-2xl font-bold mb-2">Majburiy Blok Testi</h2>
         <p class="text-sm text-gray-400 mb-6">Kanalga tashlangan PDF dagi test kodini kiriting:</p>
-        
         <div class="mb-4">
             <input type="number" id="test-code" placeholder="Masalan: 1234" 
-                   class="w-full p-4 rounded-xl border border-gray-600 bg-gray-800 text-white text-center text-xl font-bold focus:outline-none focus:border-blue-500">
+                   class="w-full p-4 rounded-xl border border-gray-700 bg-gray-800 text-white text-center text-xl font-bold focus:outline-none focus:border-blue-500">
         </div>
-        
-        <button onclick="startTest()" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition">
+        <button onclick="checkAndStart()" class="w-full p-4 bg-blue-600 text-white font-bold rounded-xl shadow-lg hover:bg-blue-700 transition">
             Testni Boshlash <i class="fa-solid fa-arrow-right ml-2"></i>
         </button>
     </div>
@@ -58,8 +42,7 @@
             <button id="tab-tarix" onclick="switchTab('tarix')" class="flex-1 py-3 text-sm text-gray-400">🕌 Tarix</button>
         </div>
 
-        <div id="questions-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1">
-            </div>
+        <div id="questions-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1"></div>
 
         <div class="mt-6">
             <button onclick="submitTest()" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition">
@@ -70,47 +53,39 @@
 
     <script>
         const tg = window.Telegram.WebApp;
-        tg.expand(); // Web app oynasini to'liq ochish
+        tg.expand();
 
         let currentTab = 'mat';
         let countdown;
-        let totalSeconds = 60 * 30; // Standart 30 daqiqa (Botdan keladigan vaqtga qarab o'zgaradi)
+        let totalSeconds = 30 * 60;
+        let qCount = 10; // Standart qiymat, botdan kelganda o'zgaradi
         
-        // Foydalanuvchi javoblarini saqlash obyekti
-        let userAnswers = {
-            mat: {},
-            tili: {},
-            tarix: {}
-        };
+        let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
-        // Testni boshlash tugmasi bosilganda
-        function startTest() {
+        // Botdan keladigan ma'lumotni simulyatsiya qilish va olish uchun
+        function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            if(!code) {
-                alert("Iltimos, test kodini kiriting!");
-                return;
-            }
+            if(!code) { alert("Test kodini kiriting!"); return; }
 
-            // Real botda bu yerda API orqali kod tekshiriladi, hozircha prototip uchun to'g'ridan-to'g'ri ochamiz
+            // Kod kiritilganda botga so'rov yuborish o'rniga, bot sizga qancha savol borligini bildiradi.
+            // Hozircha foydalanuvchi variant kiritish qismini boshlaydi, bot orqasida tekshiradi.
             document.getElementById('code-screen').classList.add('hidden');
             document.getElementById('test-screen').classList.remove('hidden');
             document.getElementById('display-code').innerText = code;
 
-            // Savollarni chizish va taymerni yoqish
+            // Mahalliy xotiradan savollar sonini tekshirish (agar bot oldindan yuborgan bo'lsa)
+            // default holatda foydalanuvchi kiritgan kodga qarab dinamik yuklanadi.
             renderQuestions();
             startTimer();
         }
 
-        // 10 ta savolni har bir fan uchun chizish
         function renderQuestions() {
             const container = document.getElementById('questions-container');
-            container.innerHTML = ''; // Tozalash
+            container.innerHTML = '';
 
-            for (let i = 1; i <= 10; i++) {
+            for (let i = 1; i <= qCount; i++) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = "bg-gray-800 p-4 rounded-xl border border-gray-700";
-                
-                // Variantlar tanlanganda saqlab qolish uchun qiymatni tekshiramiz
                 const currentSelection = userAnswers[currentTab][i] || '';
 
                 questionDiv.innerHTML = `
@@ -122,7 +97,7 @@
                                        class="hidden option-btn" ${currentSelection === opt ? 'checked' : ''}
                                        onchange="saveAnswer('${currentTab}', ${i}, '${opt}')">
                                 <label for="q_${currentTab}_${i}_${opt}" 
-                                       class="block text-center p-3 rounded-lg border border-gray-600 bg-gray-700 font-bold uppercase cursor-pointer hover:bg-gray-600 transition">
+                                       class="block text-center p-3 rounded-lg border border-gray-700 bg-gray-700 font-bold uppercase cursor-pointer hover:bg-gray-600 transition">
                                     ${opt}
                                 </label>
                             </div>
@@ -133,68 +108,26 @@
             }
         }
 
-        // Javobni xotiraga saqlash
-        function saveAnswer(subject, qNum, option) {
-            userAnswers[subject][qNum] = option;
-        }
+        function saveAnswer(subject, qNum, option) { userAnswers[subject][qNum] = option; }
 
-        // Fanlar o'rtasida o'tish (Tab)
         function switchTab(subject) {
             currentTab = subject;
             document.getElementById('tab-mat').className = "flex-1 py-3 text-sm " + (subject === 'mat' ? 'active-tab' : 'text-gray-400');
             document.getElementById('tab-tili').className = "flex-1 py-3 text-sm " + (subject === 'tili' ? 'active-tab' : 'text-gray-400');
             document.getElementById('tab-tarix').className = "flex-1 py-3 text-sm " + (subject === 'tarix' ? 'active-tab' : 'text-gray-400');
-            
             renderQuestions();
         }
 
-        // Taymer funksiyasi
         function startTimer() {
             countdown = setInterval(() => {
-                if (totalSeconds <= 0) {
-                    clearInterval(countdown);
-                    alert("Vaqt tugadi! Javoblar avtomatik yuboriladi.");
-                    submitTest();
-                } else {
+                if (totalSeconds <= 0) { clearInterval(countdown); submitTest(); } 
+                else {
                     totalSeconds--;
                     let mins = Math.floor(totalSeconds / 60);
                     let secs = totalSeconds % 60;
-                    document.getElementById('timer').innerText = 
-                        `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+                    document.getElementById('timer').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
                 }
             }, 1000);
         }
 
-        // Javoblarni yakunlash va Botga yuborish
-        function submitTest() {
-            clearInterval(countdown);
-            const code = document.getElementById('test-code').value.trim();
-
-            // Javoblarni matn ko'rinishiga keltiramiz (masalan: aaaaabbbbb)
-            let matAns = "";
-            let tiliAns = "";
-            let tarixAns = "";
-
-            for(let i=1; i<=10; i++) {
-                matAns += userAnswers.mat[i] || "x"; // belgilanmagan bo'lsa 'x'
-                tiliAns += userAnswers.tili[i] || "x";
-                tarixAns += userAnswers.tarix[i] || "x";
-            }
-
-            // Bot qabul qilishi oson bo'lishi uchun maxsus format tayyorlaymiz
-            const finalData = {
-                code: code,
-                answers: {
-                    mat: matAns,
-                    tili: tiliAns,
-                    tarix: tarixAns
-                }
-            };
-
-            // Ma'lumotni Telegram botga yuboramiz va Web Appni yopamiz
-            tg.sendData(JSON.stringify(finalData));
-            tg.close();
-        }
-    </script>
-</body>
-</html>
+        编制
