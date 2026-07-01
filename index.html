@@ -32,7 +32,7 @@
         <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl mb-4 border border-gray-700">
             <span class="text-sm text-gray-400">Kod: <b id="display-code" class="text-white"></b></span>
             <div class="text-red-500 font-bold flex items-center gap-1">
-                <i class="fa-solid fa-clock"></i> <span id="timer">--:--</span>
+                <i class="fa-solid fa-clock"></i> <span id="timer">30:00</span>
             </div>
         </div>
 
@@ -58,23 +58,29 @@
         let currentTab = 'mat';
         let countdown;
         let totalSeconds = 30 * 60;
-        let qCount = 10; // Standart qiymat, botdan kelganda o'zgaradi
-        
+        let qCount = 10; // Standart qiymat
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
-        // Botdan keladigan ma'lumotni simulyatsiya qilish va olish uchun
+        // Botdan kelgan start_param orqali kodni avtomat o'qish (agar havola orqali kirilsa)
+        window.onload = function() {
+            const initDataRaw = tg.initDataUnsafe;
+            if (initDataRaw && initDataRaw.start_param) {
+                document.getElementById('test-code').value = initDataRaw.start_param;
+            }
+        }
+
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
             if(!code) { alert("Test kodini kiriting!"); return; }
 
-            // Kod kiritilganda botga so'rov yuborish o'rniga, bot sizga qancha savol borligini bildiradi.
-            // Hozircha foydalanuvchi variant kiritish qismini boshlaydi, bot orqasida tekshiradi.
+            // Botga so'rov yuborish o'rniga, foydalanuvchining o'zi kiritgan kod asosida Web App ishlaydi.
+            // Bot orqa fonda Web App yuborgan ma'lumotni qabul qilib, o'zidagi savollar sonini tekshiradi.
+            // Admin xohlaganicha (1, 4, 10) savol kirita olishi uchun foydalanuvchiga variantlar kiritish imkonini to'liq beramiz.
+            
             document.getElementById('code-screen').classList.add('hidden');
             document.getElementById('test-screen').classList.remove('hidden');
             document.getElementById('display-code').innerText = code;
 
-            // Mahalliy xotiradan savollar sonini tekshirish (agar bot oldindan yuborgan bo'lsa)
-            // default holatda foydalanuvchi kiritgan kodga qarab dinamik yuklanadi.
             renderQuestions();
             startTimer();
         }
@@ -83,13 +89,15 @@
             const container = document.getElementById('questions-container');
             container.innerHTML = '';
 
-            for (let i = 1; i <= qCount; i++) {
+            // Admin panel moslashuvchan bo'lgani uchun foydalanuvchiga 10 tagacha variant tanlash imkonini beramiz,
+            // lekin admin nechta kalit kiritgan bo'lsa, bot faqat o'shancha savolni hisoblaydi va tekshiradi.
+            for (let i = 1; i <= 10; i++) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = "bg-gray-800 p-4 rounded-xl border border-gray-700";
                 const currentSelection = userAnswers[currentTab][i] || '';
 
                 questionDiv.innerHTML = `
-                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol variantini belgilang:</div>
+                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol:</div>
                     <div class="grid grid-cols-4 gap-2">
                         ${['a', 'b', 'c', 'd'].map(opt => `
                             <div>
@@ -108,7 +116,9 @@
             }
         }
 
-        function saveAnswer(subject, qNum, option) { userAnswers[subject][qNum] = option; }
+        function saveAnswer(subject, qNum, option) { 
+            userAnswers[subject][qNum] = option; 
+        }
 
         function switchTab(subject) {
             currentTab = subject;
@@ -130,4 +140,18 @@
             }, 1000);
         }
 
-        编制
+        function submitTest() {
+            clearInterval(countdown);
+            const code = document.getElementById('test-code').value.trim();
+            
+            const payload = {
+                code: code,
+                answers: userAnswers
+            };
+            
+            tg.sendData(JSON.stringify(payload));
+            tg.close();
+        }
+    </script>
+</body>
+</html>
