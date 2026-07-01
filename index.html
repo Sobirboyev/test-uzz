@@ -18,7 +18,7 @@
     <div id="code-screen" class="max-w-md mx-auto mt-10 text-center">
         <div class="mb-6"><i class="fa-solid fa-graduation-cap text-6xl text-blue-500"></i></div>
         <h2 class="text-2xl font-bold mb-2">Majburiy Blok Testi</h2>
-        <p class="text-sm text-gray-400 mb-6">Kanalga tashlangan PDF dagi test kodini kiriting:</p>
+        <p class="text-sm text-gray-400 mb-6">Test kodini kiriting:</p>
         <div class="mb-4">
             <input type="number" id="test-code" placeholder="Masalan: 1234" 
                    class="w-full p-4 rounded-xl border border-gray-700 bg-gray-800 text-white text-center text-xl font-bold focus:outline-none focus:border-blue-500">
@@ -30,10 +30,8 @@
 
     <div id="test-screen" class="max-w-md mx-auto hidden">
         <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl mb-4 border border-gray-700">
-            <span class="text-sm text-gray-400">Kod: <b id="display-code" class="text-white"></b></span>
-            <div class="text-red-500 font-bold flex items-center gap-1">
-                <i class="fa-solid fa-clock"></i> <span id="timer">30:00</span>
-            </div>
+            <span class="text-sm text-gray-400">Test kodi: <b id="display-code" class="text-white"></b></span>
+            <span class="text-xs text-green-400 bg-green-950 px-2 py-1 rounded-md border border-green-800 font-semibold">Tizim Faol</span>
         </div>
 
         <div class="flex border-b border-gray-700 mb-4 text-center">
@@ -42,7 +40,7 @@
             <button id="tab-tarix" onclick="switchTab('tarix')" class="flex-1 py-3 text-sm text-gray-400">🕌 Tarix</button>
         </div>
 
-        <div id="questions-container" class="space-y-4 max-h-[60vh] overflow-y-auto pr-1"></div>
+        <div id="questions-container" class="space-y-4 max-h-[65vh] overflow-y-auto pr-1"></div>
 
         <div class="mt-6">
             <button onclick="submitTest()" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition">
@@ -54,50 +52,34 @@
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
 
         let currentTab = 'mat';
-        let countdown;
-        let totalSeconds = 30 * 60;
-        let qCount = 10; // Standart qiymat
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
-
-        // Botdan kelgan start_param orqali kodni avtomat o'qish (agar havola orqali kirilsa)
-        window.onload = function() {
-            const initDataRaw = tg.initDataUnsafe;
-            if (initDataRaw && initDataRaw.start_param) {
-                document.getElementById('test-code').value = initDataRaw.start_param;
-            }
-        }
 
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            if(!code) { alert("Test kodini kiriting!"); return; }
+            if(!code) { alert("Iltimos, test kodini kiriting!"); return; }
 
-            // Botga so'rov yuborish o'rniga, foydalanuvchining o'zi kiritgan kod asosida Web App ishlaydi.
-            // Bot orqa fonda Web App yuborgan ma'lumotni qabul qilib, o'zidagi savollar sonini tekshiradi.
-            // Admin xohlaganicha (1, 4, 10) savol kirita olishi uchun foydalanuvchiga variantlar kiritish imkonini to'liq beramiz.
-            
             document.getElementById('code-screen').classList.add('hidden');
             document.getElementById('test-screen').classList.remove('hidden');
             document.getElementById('display-code').innerText = code;
 
             renderQuestions();
-            startTimer();
         }
 
         function renderQuestions() {
             const container = document.getElementById('questions-container');
             container.innerHTML = '';
 
-            // Admin panel moslashuvchan bo'lgani uchun foydalanuvchiga 10 tagacha variant tanlash imkonini beramiz,
-            // lekin admin nechta kalit kiritgan bo'lsa, bot faqat o'shancha savolni hisoblaydi va tekshiradi.
+            // Foydalanuvchiga har doim 10 ta savol varianti to'liq chiqariladi
             for (let i = 1; i <= 10; i++) {
                 const questionDiv = document.createElement('div');
                 questionDiv.className = "bg-gray-800 p-4 rounded-xl border border-gray-700";
                 const currentSelection = userAnswers[currentTab][i] || '';
 
                 questionDiv.innerHTML = `
-                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol:</div>
+                    <div class="font-semibold mb-3 text-blue-400">${i}-Savol Variantini Tanlang:</div>
                     <div class="grid grid-cols-4 gap-2">
                         ${['a', 'b', 'c', 'd'].map(opt => `
                             <div>
@@ -105,7 +87,7 @@
                                        class="hidden option-btn" ${currentSelection === opt ? 'checked' : ''}
                                        onchange="saveAnswer('${currentTab}', ${i}, '${opt}')">
                                 <label for="q_${currentTab}_${i}_${opt}" 
-                                       class="block text-center p-3 rounded-lg border border-gray-700 bg-gray-700 font-bold uppercase cursor-pointer hover:bg-gray-600 transition">
+                                       class="block text-center p-3 rounded-lg border border-gray-700 bg-gray-700 font-bold uppercase cursor-pointer hover:bg-gray-600 transition border-2">
                                     ${opt}
                                 </label>
                             </div>
@@ -128,29 +110,23 @@
             renderQuestions();
         }
 
-        function startTimer() {
-            countdown = setInterval(() => {
-                if (totalSeconds <= 0) { clearInterval(countdown); submitTest(); } 
-                else {
-                    totalSeconds--;
-                    let mins = Math.floor(totalSeconds / 60);
-                    let secs = totalSeconds % 60;
-                    document.getElementById('timer').innerText = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
-                }
-            }, 1000);
-        }
-
         function submitTest() {
-            clearInterval(countdown);
             const code = document.getElementById('test-code').value.trim();
-            
             const payload = {
                 code: code,
                 answers: userAnswers
             };
             
-            tg.sendData(JSON.stringify(payload));
-            tg.close();
+            // Ma'lumot uzatishni kafolatlash uchun stringify qilinadi
+            try {
+                tg.sendData(JSON.stringify(payload));
+                // Ba'zi eski qurilmalarda darhol yopilib ketmasligi uchun va ma'lumot yetib borishi uchun qisqa kechikish
+                setTimeout(() => {
+                    tg.close();
+                }, 150);
+            } catch (error) {
+                alert("Xatolik: Telegram bilan aloqa o'rnatib bo'lmadi.");
+            }
         }
     </script>
 </body>
