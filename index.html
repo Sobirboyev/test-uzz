@@ -45,8 +45,8 @@
         <div id="questions-container" class="space-y-4 max-h-[65vh] overflow-y-auto pr-1"></div>
 
         <div class="mt-6">
-            <button onclick="submitTest()" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition">
-                <i class="fa-solid fa-paper-plane mr-2"></i> Javoblarni Tasdiqlash
+            <button id="submit-btn" onclick="submitTest()" class="w-full p-4 bg-green-600 text-white font-bold rounded-xl shadow-lg hover:bg-green-700 transition flex items-center justify-center">
+                <i id="submit-icon" class="fa-solid fa-paper-plane mr-2"></i> <span id="submit-text">Javoblarni Tasdiqlash</span>
             </button>
         </div>
     </div>
@@ -167,12 +167,49 @@
             renderQuestions();
         }
 
+        // ✅ TO'G'RILANGAN FUNKSIYA: Ma'lumotlarni xavfsiz va to'g'ridan-to'g'ri POST so'rovi orqali yuboradi
         function submitTest() {
             const code = document.getElementById('test-code').value.trim();
-            try {
-                tg.sendData(JSON.stringify({code: code, answers: userAnswers}));
-                setTimeout(() => { tg.close(); }, 150);
-            } catch (error) { alert("Xatolik!"); }
+            const userId = tg.initDataUnsafe?.user?.id || "0"; 
+
+            const submitBtn = document.getElementById('submit-btn');
+            const submitIcon = document.getElementById('submit-icon');
+            const submitText = document.getElementById('submit-text');
+
+            // Foydalanuvchi tugmani ketma-ket bosib yubormasligi uchun bloklaymiz
+            submitBtn.disabled = true;
+            submitText.innerText = "Yuborilmoqda...";
+            submitIcon.className = "fa-solid fa-spinner fa-spin mr-2";
+
+            fetch(`${BACKEND_URL}/submit_test`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    user_id: userId,
+                    code: code,
+                    answers: userAnswers
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === "success") {
+                    alert("Sizning javoblaringiz qabul qilindi! Natijangiz bot orqali shaxsiy xabarga yuborildi.");
+                    setTimeout(() => { tg.close(); }, 500);
+                } else {
+                    alert("Xatolik: " + data.message);
+                    submitBtn.disabled = false;
+                    submitText.innerText = "Javoblarni Tasdiqlash";
+                    submitIcon.className = "fa-solid fa-paper-plane mr-2";
+                }
+            })
+            .catch(err => {
+                alert("Server bilan ulanishda xatolik yuz berdi. Iltimos, internetingizni tekshirib qayta urining!");
+                submitBtn.disabled = false;
+                submitText.innerText = "Javoblarni Tasdiqlash";
+                submitIcon.className = "fa-solid fa-paper-plane mr-2";
+            });
         }
     </script>
 </body>
