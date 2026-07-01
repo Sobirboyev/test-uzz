@@ -54,13 +54,13 @@
         tg.expand();
         tg.ready();
 
-        // RENDER / REKORD HOSTINGINGIZ SILKASI
+        // ⚠️ RENDER YOKI REKORD HOSTINGINGIZ SILKASI CHIRAYLI QILIB YOZILSIN
         const BACKEND_URL = "https://testbot-xxxx.onrender.com"; 
 
         let currentTab = 'mat';
         let userAnswers = { mat: {}, tili: {}, tarix: {} };
 
-        // Birinchi kirgandayoq tekshirish
+        // Birinchi kirgandayoq orqa fonda jimgina tekshirish (Hech qanday alertlarsiz)
         window.addEventListener('DOMContentLoaded', () => {
             const userId = tg.initDataUnsafe?.user?.id;
             if (userId) {
@@ -72,13 +72,15 @@
                             tg.close();
                         }
                     })
-                    .catch(err => console.error("Aloqa yo'q"));
+                    .catch(err => console.log("Tizim yuklanishda kutmoqda..."));
             }
         });
 
         function checkAndStart() {
             const code = document.getElementById('test-code').value.trim();
-            const userId = tg.initDataUnsafe?.user?.id || "0"; // Agar brauzer bo'lsa test rejimi uchun 0
+            
+            // Telegram foydalanuvchi ID sini aniqlash. Agar topilmasa jimgina "0" (Hech qanday xatosiz!)
+            const userId = tg.initDataUnsafe?.user?.id || "0"; 
 
             if(!code) { 
                 alert("Iltimos, test kodini kiriting!"); 
@@ -93,6 +95,7 @@
             btnIcon.className = "fa-solid fa-spinner fa-spin ml-2";
             startBtn.disabled = true;
 
+            // Serverga so'rov yuborish
             fetch(`${BACKEND_URL}/check_status?user_id=${userId}&code=${code}`)
                 .then(response => response.json())
                 .then(data => {
@@ -109,22 +112,24 @@
                         alert(data.message);
                         tg.close();
                     } else {
-                        document.getElementById('code-screen').classList.add('hidden');
-                        document.getElementById('test-screen').classList.remove('hidden');
-                        document.getElementById('display-code').innerText = code;
-                        renderQuestions();
+                        // Agar hamma shartlar "ok" bo'lsa ekran ochiladi
+                        openTestScreen(code);
                     }
                 })
                 .catch(err => {
+                    // Agar server o'chiq bo'lsa yoki brauzerda test qilinayotgan bo'lsa xato chiqmasdan to'g'ridan-to'g'ri o'tkazadi!
                     btnText.innerText = "Testni Boshlash";
                     btnIcon.className = "fa-solid fa-arrow-right ml-2";
                     startBtn.disabled = false;
-                    // Brauzer testlarida xato bermasligi uchun o'tkazib yuborish logikasi
-                    document.getElementById('code-screen').classList.add('hidden');
-                    document.getElementById('test-screen').classList.remove('hidden');
-                    document.getElementById('display-code').innerText = code;
-                    renderQuestions();
+                    openTestScreen(code);
                 });
+        }
+
+        function openTestScreen(code) {
+            document.getElementById('code-screen').classList.add('hidden');
+            document.getElementById('test-screen').classList.remove('hidden');
+            document.getElementById('display-code').innerText = code;
+            renderQuestions();
         }
 
         function renderQuestions() {
@@ -156,8 +161,10 @@
             }
         }
 
-        // Qolgan js kodlar o'zgarishsiz qoladi...
-        function saveAnswer(subject, qNum, option) { userAnswers[subject][qNum] = option; }
+        function saveAnswer(subject, qNum, option) { 
+            userAnswers[subject][qNum] = option; 
+        }
+
         function switchTab(subject) {
             currentTab = subject;
             document.getElementById('tab-mat').className = "flex-1 py-3 text-sm " + (subject === 'mat' ? 'active-tab' : 'text-gray-400');
@@ -165,12 +172,15 @@
             document.getElementById('tab-tarix').className = "flex-1 py-3 text-sm " + (subject === 'tarix' ? 'active-tab' : 'text-gray-400');
             renderQuestions();
         }
+
         function submitTest() {
             const code = document.getElementById('test-code').value.trim();
             try {
                 tg.sendData(JSON.stringify({code: code, answers: userAnswers}));
                 setTimeout(() => { tg.close(); }, 150);
-            } catch (error) { alert("Xatolik!"); }
+            } catch (error) { 
+                alert("Xatolik: Telegram bilan aloqa o'rnatilmadi."); 
+            }
         }
     </script>
 </body>
